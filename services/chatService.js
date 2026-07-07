@@ -5,6 +5,7 @@ const groq = new Groq({
 });
 
 async function chatService(messages, model) {
+    console.log("Using Model:", model);
 
     const completion = await groq.chat.completions.create({
 
