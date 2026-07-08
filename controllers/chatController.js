@@ -6,6 +6,7 @@ const buildVisionMessage = require("../services/visionService"
 
 const detectIntent = require("../services/routerService");
 const webSearchService = require("../services/webSearchService");
+const memoryService = require("../services/memoryService");
 
 async function chatController(req, res) {
     try {
@@ -23,6 +24,51 @@ async function chatController(req, res) {
 // ===========================
 
 const lowerMessage = message.toLowerCase();
+console.log("✅ NEW chatController is running");
+// ===========================
+// Memory (Name)
+// ===========================
+
+const userId = "default-user";
+
+// Remember user's name
+const nameMatch = message.match(/my name is\s+(.+)/i);
+
+if (nameMatch) {
+
+    const name = nameMatch[1].trim();
+
+    memoryService.remember(userId, "name", name);
+
+    return res.json({
+        reply: `😊 Nice to meet you, ${name}! I'll remember your name. 💜`
+    });
+
+}
+
+// Recall user's name
+if (
+    lowerMessage.includes("what's my name") ||
+    lowerMessage.includes("what is my name") ||
+    lowerMessage.includes("माझं नाव काय") ||
+    lowerMessage.includes("maz nav kay")
+) {
+
+    const savedName = memoryService.recall(userId, "name");
+
+    if (savedName) {
+
+        return res.json({
+            reply: `😊 Your name is ${savedName}.`
+        });
+
+    }
+
+    return res.json({
+        reply: "I don't know your name yet. Tell me by saying: My name is ..."
+    });
+
+}
 
 if (
     lowerMessage.includes("time") ||
