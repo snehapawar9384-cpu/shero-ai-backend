@@ -8,10 +8,12 @@ const router = express.Router();
 const upload = multer({
     storage: multer.memoryStorage()
 });
-
 router.post(
     "/chat",
-    upload.single("image"),
+    upload.fields([
+        { name: "image", maxCount: 1 },
+        { name: "pdf", maxCount: 1 }
+    ]),
     chatController
 );
 

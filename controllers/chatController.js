@@ -7,6 +7,8 @@ const buildVisionMessage = require("../services/visionService"
 const detectIntent = require("../services/routerService");
 const webSearchService = require("../services/webSearchService");
 const memoryService = require("../services/memoryService");
+const imageService = require("../services/imageService");
+const pdfService = require("../services/pdfService");
 
 async function chatController(req, res) {
     try {
@@ -17,19 +19,229 @@ async function chatController(req, res) {
             ? JSON.parse(req.body.history)
             : [];
 
-        const image = req.file;
+        const image = req.files?.image
+    ? req.files.image[0]
+    : null;
+
+const pdf = req.files?.pdf
+    ? req.files.pdf[0]
+    : null;
         const intent = detectIntent(message);
-        // ===========================
-// Current Time
-// ===========================
+        
 
 const lowerMessage = message.toLowerCase();
-console.log("✅ NEW chatController is running");
+
+
+// ===========================
+// PDF Analysis
+// ===========================
+
+if (pdf) {
+
+    const result = await pdfService(pdf.buffer);
+    if (!result.success) {
+
+        return res.json({
+            reply: "❌ Unable to read the PDF."
+        });
+
+    }
+
+    let messages = [
+        {
+            role: "system",
+            content: systemPrompt
+        },
+        {
+            role: "user",
+            content:
+                `PDF Content:\n\n${result.text}\n\n\nUser Question:\n${message}`
+        }
+    ];
+
+    const reply = await chatService(
+        messages,
+        "llama-3.3-70b-versatile"
+    );
+
+    return res.json({
+        reply
+    });
+
+}
+// ===========================
+
+// Image Generation
+// ===========================
+
+
+const imageWords = [
+    "draw",
+    "generate image",
+    "create image",
+    "make image",
+    "image of",
+    "photo of",
+    "picture of",
+    "drawing",
+    "चित्र",
+    "फोटो",
+    "image",
+    "draw me"
+];
+
+const wantsImage = imageWords.some(word =>
+    lowerMessage.includes(word)
+);
+
+if (wantsImage) {
+    console.log("🟢 IMAGE BLOCK TRIGGERED");
+
+    const result = await imageService(message);
+
+    if (result.success) {
+
+        return res.json({
+            type: "image",
+            image: result.image
+        });
+
+    }
+
+    return res.json({
+        reply: "⚠️ Image generation failed."
+    });
+
+}
+const isTimeQuestion =
+
+    lowerMessage.includes("time") ||
+    lowerMessage.includes("what time") ||
+    lowerMessage.includes("current time") ||
+
+    lowerMessage.includes("किती वाजले") ||
+    lowerMessage.includes("आता किती") ||
+    lowerMessage.includes("वेळ") ||
+
+    lowerMessage.includes("vajle") ||
+    lowerMessage.includes("vajlet") ||
+    lowerMessage.includes("vel");
+
+if (isTimeQuestion) {
+
+    const formatter = new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+    });
+
+    const currentTime = formatter.format(new Date());
+
+    return res.json({
+        reply: `🕒 आता ${currentTime} वाजले आहेत.`
+    });
+
+}
+
 // ===========================
 // Memory (Name)
 // ===========================
 
 const userId = "default-user";
+// ===========================
+// Smart Memory
+// ===========================
+
+// Name
+const nameRegex = /my name is\s+(.+)/i;
+const name = message.match(nameRegex);
+
+if (name) {
+
+    memoryService.remember(userId, "name", name[1].trim());
+
+    return res.json({
+        reply: `😊 Nice to meet you, ${name[1].trim()}! I'll remember your name. 💜`
+    });
+
+}
+
+// Age
+const ageRegex = /i am (\d+)|i'm (\d+)/i;
+const age = message.match(ageRegex);
+
+if (age) {
+
+    const value = age[1] || age[2];
+
+    memoryService.remember(userId, "age", value);
+
+    return res.json({
+        reply: `🎂 Got it! I'll remember that you're ${value} years old.`
+    });
+
+}
+
+// City
+const cityRegex = /i live in (.+)/i;
+const city = message.match(cityRegex);
+
+if (city) {
+
+    memoryService.remember(userId, "city", city[1].trim());
+
+    return res.json({
+        reply: `📍 Great! I'll remember that you live in ${city[1].trim()}.`
+    });
+
+}
+
+// Favourite Color
+const colorRegex = /my favourite color is (.+)|my favorite color is (.+)/i;
+const color = message.match(colorRegex);
+
+if (color) {
+
+    const value = color[1] || color[2];
+
+    memoryService.remember(userId, "color", value.trim());
+
+    return res.json({
+        reply: `🎨 I'll remember your favourite color is ${value.trim()}.`
+    });
+
+}
+
+// Favourite Food
+const foodRegex = /my favourite food is (.+)|my favorite food is (.+)/i;
+const food = message.match(foodRegex);
+
+if (food) {
+
+    const value = food[1] || food[2];
+
+    memoryService.remember(userId, "food", value.trim());
+
+    return res.json({
+        reply: `🍕 I'll remember your favourite food is ${value.trim()}.`
+    });
+
+}
+
+// Hobby
+const hobbyRegex = /my hobby is (.+)/i;
+const hobby = message.match(hobbyRegex);
+
+if (hobby) {
+
+    memoryService.remember(userId, "hobby", hobby[1].trim());
+
+    return res.json({
+        reply: `🎯 Nice! I'll remember your hobby is ${hobby[1].trim()}.`
+    });
+
+}
 
 // Remember user's name
 const nameMatch = message.match(/my name is\s+(.+)/i);
@@ -69,26 +281,91 @@ if (
     });
 
 }
+// ===========================
+// Recall Smart Memory
+// ===========================
 
+// Age
 if (
-    lowerMessage.includes("time") ||
-    lowerMessage.includes("किती वाजले") ||
-    lowerMessage.includes("ata kiti vajlet") ||
-    lowerMessage.includes("what time")
+    lowerMessage.includes("how old am i") ||
+    lowerMessage.includes("my age")
 ) {
 
-    const now = new Date();
-
-    const currentTime = now.toLocaleTimeString("en-IN", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true
-    });
+    const age = memoryService.recall(userId, "age");
 
     return res.json({
-        reply: `🕒 आता ${currentTime} वाजले आहेत.`
+        reply: age
+            ? `🎂 You are ${age} years old.`
+            : "I don't know your age yet."
     });
+
 }
+
+// City
+if (
+    lowerMessage.includes("where do i live") ||
+    lowerMessage.includes("my city")
+) {
+
+    const city = memoryService.recall(userId, "city");
+
+    return res.json({
+        reply: city
+            ? `📍 You live in ${city}.`
+            : "I don't know where you live yet."
+    });
+
+}
+
+// Favourite Color
+if (
+    lowerMessage.includes("favourite color") ||
+    lowerMessage.includes("favorite color")
+) {
+
+    const color = memoryService.recall(userId, "color");
+
+    return res.json({
+        reply: color
+            ? `🎨 Your favourite color is ${color}.`
+            : "I don't know your favourite color yet."
+    });
+
+}
+
+// Favourite Food
+if (
+    lowerMessage.includes("favourite food") ||
+    lowerMessage.includes("favorite food")
+) {
+
+    const food = memoryService.recall(userId, "food");
+
+    return res.json({
+        reply: food
+            ? `🍕 Your favourite food is ${food}.`
+            : "I don't know your favourite food yet."
+    });
+
+}
+
+// Hobby
+if (
+    lowerMessage.includes("my hobby") ||
+    lowerMessage.includes("what's my hobby")
+) {
+
+    const hobby = memoryService.recall(userId, "hobby");
+
+    return res.json({
+        reply: hobby
+            ? `🎯 Your hobby is ${hobby}.`
+            : "I don't know your hobby yet."
+    });
+
+}
+
+    
 // ===========================
 // Shero Introduction
 // ===========================
@@ -176,7 +453,35 @@ if (intent === "web" && !image) {
                 await buildVisionMessage(message, image)
             );
 
-        } else {
+        } else {const followUpWords = [
+    "english",
+    "marathi",
+    "hindi",
+    "translate",
+    "same",
+    "continue",
+    "explain",
+    "short",
+    "long",
+    "he english",
+    "he marathi",
+    "same in english",
+    "same in marathi"
+];
+
+const isFollowUp = followUpWords.some(word =>
+    lowerMessage.includes(word)
+);
+
+if (isFollowUp) {
+
+    messages.push({
+        role: "system",
+        content:
+            "The user's latest message refers to your PREVIOUS answer. Do NOT start a new topic. Apply the user's request to your last response only."
+    });
+
+}
 
             messages.push({
                 role: "user",
@@ -187,6 +492,13 @@ if (intent === "web" && !image) {
 
         // Select Model
         const model = "llama-3.3-70b-versatile";
+       console.log("========== MESSAGES ==========");
+
+messages.forEach((m, i) => {
+    console.log(i, m.role, m.content);
+});
+
+console.log("==============================");
         const reply = await chatService(messages, model);
 
         res.json({
