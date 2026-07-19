@@ -1,15 +1,21 @@
 const axios = require("axios");
 
 async function imageService(prompt) {
-
     try {
 
-        const url =
-            `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`;
-
-        const response = await axios.get(url, {
-            responseType: "arraybuffer"
-        });
+        const response = await axios.post(
+            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+            {
+                inputs: prompt
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.HF_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                responseType: "arraybuffer"
+            }
+        );
 
         return {
             success: true,
@@ -18,7 +24,8 @@ async function imageService(prompt) {
 
     } catch (error) {
 
-        console.error("Image Error:", error.message);
+        console.error("HF Status:", error.response?.status);
+        console.error("HF Error:", error.response?.data || error.message);
 
         return {
             success: false,
@@ -26,7 +33,6 @@ async function imageService(prompt) {
         };
 
     }
-
 }
 
 module.exports = imageService;
