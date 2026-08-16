@@ -2,7 +2,9 @@ const systemPrompt = require("../services/promptService");
 const chatService = require("../services/chatService");
 const buildVisionMessage = require("../services/visionService"
     
+    
 );
+const geminiVisionService = require("../services/geminiVisionService");
 
 const detectIntent = require("../services/routerService");
 const webSearchService = require("../services/webSearchService");
@@ -447,13 +449,17 @@ if (intent === "web" && !image) {
         });
 
         // User message
-        if (image) {
+       if (image) {
 
-            messages.push(
-                await buildVisionMessage(message, image)
-            );
+    const reply = await geminiVisionService(message, image);
 
-        } else {const followUpWords = [
+    return res.json({
+        reply
+    });
+
+}
+
+         else {const followUpWords = [
     "english",
     "marathi",
     "hindi",
@@ -491,12 +497,8 @@ if (isFollowUp) {
         }
 
         // Select Model
-        const model = "llama-3.3-70b-versatile";
-       console.log("========== MESSAGES ==========");
-
-messages.forEach((m, i) => {
-    console.log(i, m.role, m.content);
-});
+        // Select Model
+const model = "llama-3.1-8b-instant";
 
 console.log("==============================");
         const reply = await chatService(messages, model);

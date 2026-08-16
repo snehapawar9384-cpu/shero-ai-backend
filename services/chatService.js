@@ -15,7 +15,7 @@ async function chatService(messages, model) {
 
         temperature: 0.2,
 
-        max_tokens: 1024,
+        max_tokens: 512,
 
     });
 
