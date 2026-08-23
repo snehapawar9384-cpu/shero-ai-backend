@@ -449,12 +449,23 @@ if (intent === "web" && !image) {
         });
 
         // User message
-       if (image) {
+      if (image) {
 
     const reply = await geminiVisionService(message, image);
 
     return res.json({
-        reply
+        reply,
+        history: [
+            ...history,
+            {
+                role: "user",
+                content: message
+            },
+            {
+                role: "assistant",
+                content: reply
+            }
+        ]
     });
 
 }
@@ -498,7 +509,7 @@ if (isFollowUp) {
 
         // Select Model
         // Select Model
-const model = "llama-3.1-8b-instant";
+const model = "llama-3.3-70b-versatile";
 
 console.log("==============================");
         const reply = await chatService(messages, model);
