@@ -1,58 +1,84 @@
-const { GoogleGenAI } = require("@google/genai");
+const Groq = require("groq-sdk");
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY,
 });
 
 async function geminiVisionService(message, image) {
-  try {
-    const imagePart = {
-      inlineData: {
-        mimeType: image.mimetype,
-        data: image.buffer.toString("base64"),
-      },
-    };
+    try {
 
-    const prompt = `
+        const base64Image = image.buffer.toString("base64");
+
+        const imageUrl =
+            `data:${image.mimetype};base64,${base64Image}`;
+
+        const completion = await groq.chat.completions.create({
+
+            model: "qwen/qwen3.6-27b",
+
+            messages: [
+                {
+                    role: "system",
+                    content: `
 You are Shero AI.
 
-The user uploaded an image.
+Carefully analyze the uploaded image.
 
-User request:
-${message}
+If the image contains:
+- question papers
+- books
+- notes
+- handwritten text
+- printed text
+- documents
+- diagrams
+- mathematical questions
 
-Instructions:
-- Carefully analyze the image.
-- If it contains notes, books, handwritten text, printed text, documents or question papers:
-  - Read all visible text.
-  - Answer only from the image.
-  - Summarize if asked.
-  - Explain if asked.
-  - Translate if asked.
-  - Generate MCQs if asked.
-- If the image is unclear, politely ask for a clearer image.
-- Reply in the same language as the user.
-`;
+Read the visible content carefully and answer the user's question.
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: prompt },
-            imagePart,
-          ],
-        },
-      ],
-    });
+If the user asks for:
+- English → answer in English
+- Marathi → answer in Marathi
+- Hindi → answer in Hindi
+- translation → translate accurately
+- explanation → explain clearly
+- answers → provide the correct answers
 
-    return response.text;
+Do not invent information that is not visible in the image.
 
-  } catch (error) {
-    console.error("Gemini Vision Error:", error);
-    throw error;
-  }
+If the image is unclear, tell the user that a clearer image is required.
+                    `
+                },
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: message
+                        },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: imageUrl
+                            }
+                        }
+                    ]
+                }
+            ],
+
+            temperature: 0.2,
+            max_completion_tokens: 2048
+
+        });
+
+        return completion.choices[0].message.content;
+
+    } catch (error) {
+
+        console.error("Groq Vision Error:", error);
+
+        throw error;
+    }
 }
 
 module.exports = geminiVisionService;
