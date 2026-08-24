@@ -1,37 +1,36 @@
-const axios = require("axios");
+const { InferenceClient } = require("@huggingface/inference");
+
+const client = new InferenceClient(process.env.HF_API_KEY);
 
 async function imageService(prompt) {
     try {
 
-        const response = await axios.post(
-            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
-            {
-                inputs: prompt
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.HF_API_KEY}`,
-                    "Content-Type": "application/json"
-                },
-                responseType: "arraybuffer"
-            }
-        );
+        console.log("🟢 Image generation started");
+        console.log("Prompt:", prompt);
+
+        const image = await client.textToImage({
+            model: "black-forest-labs/FLUX.1-schnell",
+            inputs: prompt,
+            provider: "auto"
+        });
+
+        const buffer = Buffer.from(await image.arrayBuffer());
+
+        console.log("✅ Image generated successfully");
 
         return {
             success: true,
-            image: Buffer.from(response.data).toString("base64")
+            image: buffer.toString("base64")
         };
 
     } catch (error) {
 
-        console.error("HF Status:", error.response?.status);
-        console.error("HF Error:", error.response?.data || error.message);
+        console.error("❌ Image Generation Error:", error);
 
         return {
             success: false,
             message: "Image generation failed."
         };
-
     }
 }
 
