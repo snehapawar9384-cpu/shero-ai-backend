@@ -63,7 +63,7 @@ if (pdf) {
 
     const reply = await chatService(
         messages,
-        "llama-3.3-70b-versatile"
+        "openai/gpt-oss-120b"
     );
 
     return res.json({
@@ -509,7 +509,7 @@ if (isFollowUp) {
 
         // Select Model
         // Select Model
-const model = "llama-3.3-70b-versatile";
+const model  = "openai/gpt-oss-120b";
 
 console.log("==============================");
         const reply = await chatService(messages, model);
