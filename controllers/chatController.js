@@ -88,7 +88,6 @@ const imageWords = [
     "drawing",
     "चित्र",
     "फोटो",
-    "image",
     "draw me"
 ];
 

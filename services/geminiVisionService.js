@@ -16,6 +16,9 @@ async function geminiVisionService(message, image) {
 
             model: "qwen/qwen3.6-27b",
 
+             reasoning_format: "hidden",
+             reasoning_effort: "none",
+
             messages: [
                 {
                     role: "system",
@@ -43,10 +46,22 @@ If the user asks for:
 - translation → translate accurately
 - explanation → explain clearly
 - answers → provide the correct answers
+- Give only the final answer to the user.
+- Do not show internal reasoning, analysis, or <think> tags.
+- Do not mention how you analyzed the image.
+- If the user asks for a specific question, answer only that question.
+- Keep the response concise unless the user asks for explanation.
+
+
 
 Do not invent information that is not visible in the image.
 
 If the image is unclear, tell the user that a clearer image is required.
+- Return only the final answer.
+- Never output <think> tags.
+- Never output internal reasoning or analysis.
+- Do not repeat the image analysis process.
+- Answer only what the user asked.
                     `
                 },
                 {
@@ -67,7 +82,7 @@ If the image is unclear, tell the user that a clearer image is required.
             ],
 
             temperature: 0.2,
-            max_completion_tokens: 2048
+            max_completion_tokens: 4096
 
         });
 
@@ -75,7 +90,10 @@ If the image is unclear, tell the user that a clearer image is required.
 
     } catch (error) {
 
-        console.error("Groq Vision Error:", error);
+       console.error("❌ Groq Vision Error");
+console.error("Status:", error.status);
+console.error("Message:", error.message);
+console.error("Response:", error.error);
 
         throw error;
     }
