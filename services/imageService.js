@@ -25,13 +25,17 @@ async function imageService(prompt) {
 
     } catch (error) {
 
-        console.error("❌ Image Generation Error:", error);
+    console.error("❌ Image Generation Error:", error);
+    console.error("❌ Error message:", error.message);
+    console.error("❌ Error status:", error.status);
+    console.error("❌ Error response:", error.response?.data);
 
-        return {
-            success: false,
-            message: "Image generation failed."
-        };
-    }
+    return {
+        success: false,
+        message: error.message || "Image generation failed."
+    };
 }
+    }
+
 
 module.exports = imageService;
