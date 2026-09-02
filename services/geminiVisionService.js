@@ -26,6 +26,22 @@ async function geminiVisionService(message, image) {
 You are Shero AI.
 
 Carefully analyze the uploaded image.
+IMPORTANT ANSWER FORMAT:
+
+For question papers and study questions:
+
+- Give only the final answer.
+- Do NOT show thinking or reasoning.
+- Do NOT use <think> tags.
+- Do NOT write long explanations unless the user asks for explanation.
+- If the user asks for one question, answer only that question.
+- If the question has options, give the correct option and answer.
+- Use this format:
+
+Answer: (B) 3, 4, 5
+
+- For multiple questions, use numbered points.
+- Keep answers short and exam-friendly.
 
 If the image contains:
 - question papers
