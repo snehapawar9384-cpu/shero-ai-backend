@@ -102,7 +102,13 @@ If the image is unclear, tell the user that a clearer image is required.
 
         });
 
-        return completion.choices[0].message.content;
+        const answer = completion.choices[0].message.content;
+
+const cleanAnswer = answer
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .trim();
+
+return cleanAnswer;
 
     } catch (error) {
 
